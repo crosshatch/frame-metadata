@@ -1,4 +1,9 @@
+deno
+denoland
 dprint
+esbenp
 hasher
 hashers
+ltex
+morfologic
 twox
