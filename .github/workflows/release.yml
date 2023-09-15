@@ -3,7 +3,6 @@ on:
   release:
     types:
       - created
-
 jobs:
   release:
     name: Release
@@ -15,4 +14,6 @@ jobs:
         with:
           deno-version: v1.33.3
       - run: deno task npm
-      - run: cd target/npm && npm publish
+      - run: npm publish target/npm
+    env:
+      NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
