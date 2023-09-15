@@ -1,6 +1,6 @@
-import * as $ from "../deps/scale.ts"
-import { EncodeBuffer } from "../deps/scale.ts"
-import { Blake2b, Xxhash } from "../deps/wat_the_crypto.ts"
+import * as $ from "./deps/scale.ts"
+import { EncodeBuffer } from "./deps/scale.ts"
+import { Blake2b, Xxhash } from "./deps/wat_the_crypto.ts"
 
 export abstract class Hasher {
   abstract create(): Hashing
