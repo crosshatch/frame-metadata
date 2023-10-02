@@ -14,6 +14,7 @@ jobs:
         with:
           deno-version: v1.33.3
       - run: deno task npm
-      - run: npm publish target/npm
-    env:
-      NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+      - run: npm publish
+        working-directory: target/npm
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
