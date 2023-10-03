@@ -1,4 +1,4 @@
-import * as $ from "../../deps/scale.ts"
+import * as $ from "../../deps/subshape.ts"
 
 export type Era =
   | { type: "Immortal" }
@@ -19,25 +19,25 @@ export namespace Era {
   }
 }
 
-export const $era: $.Codec<Era> = $.createCodec({
-  _metadata: $.metadata("$era"),
-  _staticSize: 2,
-  _encode(buffer, value) {
+export const $era: $.Shape<Era> = $.createShape({
+  metadata: $.metadata("$era"),
+  staticSize: 2,
+  subEncode(buffer, value) {
     if (value.type === "Immortal") {
       buffer.array[buffer.index++] = 0
     } else {
       const quantizeFactor = maxN(value.period >> 12n, 1n)
       const encoded = minN(maxN(trailingZeroes(value.period) - 1n, 1n), 15n)
         | ((value.phase / quantizeFactor) << 4n)
-      $.u16._encode(buffer, Number(encoded))
+      $.u16.subEncode(buffer, Number(encoded))
     }
   },
-  _decode(buffer) {
+  subDecode(buffer) {
     if (buffer.array[buffer.index] === 0) {
       buffer.index++
       return { type: "Immortal" }
     } else {
-      const encoded = BigInt($.u16._decode(buffer))
+      const encoded = BigInt($.u16.subDecode(buffer))
       const period = 2n << (encoded % (1n << 4n))
       const quantizeFactor = maxN(period >> 12n, 1n)
       const phase = (encoded >> 4n) * quantizeFactor
@@ -48,12 +48,12 @@ export const $era: $.Codec<Era> = $.createCodec({
       }
     }
   },
-  _assert: $
+  subAssert: $
     .taggedUnion("type", [
       $.variant("Immortal"),
       $.variant("Mortal", $.field("period", $.u64), $.field("phase", $.u64)),
     ])
-    ._assert,
+    .subAssert,
 })
 
 function maxN(a: bigint, b: bigint) {

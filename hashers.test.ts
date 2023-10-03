@@ -1,6 +1,6 @@
 import { encodeHex } from "./deps/hexes.ts"
-import * as $ from "./deps/scale.ts"
 import { assertEquals } from "./deps/std/assert.ts"
+import * as $ from "./deps/subshape.ts"
 import * as hashers from "./hashers.ts"
 
 interface Foo {
@@ -10,7 +10,7 @@ interface Foo {
   d?: Foo
 }
 
-const $foo: $.Codec<Foo> = $.object(
+const $foo: $.Shape<Foo> = $.object(
   $.field("a", $.uint8Array),
   $.field("b", $.array($.bool)),
   $.field("c", $.promise($.str)),

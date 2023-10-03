@@ -6,4 +6,5 @@ hasher
 hashers
 ltex
 morfologic
+subshape
 twox

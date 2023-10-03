@@ -1,5 +1,5 @@
-import * as $ from "../deps/scale.ts"
-import { blake2_256 } from "../util/mod.ts"
+import * as $ from "../deps/subshape.ts"
+import { blake2_256 } from "../hashers.ts"
 import { FrameMetadata } from "./FrameMetadata.ts"
 
 export interface Extrinsic<M extends FrameMetadata> {
@@ -25,35 +25,35 @@ export type Signer<M extends FrameMetadata> = (
   fullData: Uint8Array,
 ) => $.Output<M["extrinsic"]["signature"]> | Promise<$.Output<M["extrinsic"]["signature"]>>
 
-export function $extrinsic<M extends FrameMetadata>(metadata: M): $.Codec<Extrinsic<M>> {
-  const $sig = metadata.extrinsic.signature as $.Codec<$.Output<M["extrinsic"]["signature"]>>
+export function $extrinsic<M extends FrameMetadata>(metadata: M): $.Shape<Extrinsic<M>> {
+  const $sig = metadata.extrinsic.signature as $.Shape<$.Output<M["extrinsic"]["signature"]>>
   const $sigPromise = $.promise($sig)
-  const $call = metadata.extrinsic.call as $.Codec<$.Output<M["extrinsic"]["call"]>>
-  const $address = metadata.extrinsic.address as $.Codec<$.Output<M["extrinsic"]["address"]>>
-  const $extra = metadata.extrinsic.extra as $.Codec<$.Output<M["extrinsic"]["extra"]>>
-  const $additional = metadata.extrinsic.additional as $.Codec<
+  const $call = metadata.extrinsic.call as $.Shape<$.Output<M["extrinsic"]["call"]>>
+  const $address = metadata.extrinsic.address as $.Shape<$.Output<M["extrinsic"]["address"]>>
+  const $extra = metadata.extrinsic.extra as $.Shape<$.Output<M["extrinsic"]["extra"]>>
+  const $additional = metadata.extrinsic.additional as $.Shape<
     $.Output<M["extrinsic"]["additional"]>
   >
 
-  const toSignSize = $call._staticSize + $extra._staticSize + $additional._staticSize
-  const totalSize = 1 + $address._staticSize + $sig._staticSize + toSignSize
+  const toSignSize = $call.staticSize + $extra.staticSize + $additional.staticSize
+  const totalSize = 1 + $address.staticSize + $sig.staticSize + toSignSize
 
-  const $baseExtrinsic: $.Codec<Extrinsic<M>> = $.createCodec({
-    _metadata: [],
-    _staticSize: totalSize,
-    _encode(buffer, extrinsic) {
+  const $baseExtrinsic: $.Shape<Extrinsic<M>> = $.createShape({
+    metadata: [],
+    staticSize: totalSize,
+    subEncode(buffer, extrinsic) {
       const firstByte = (+!!extrinsic.signature << 7) | extrinsic.protocolVersion
       buffer.array[buffer.index++] = firstByte
       const { signature, call } = extrinsic
       if (signature) {
-        $address._encode(buffer, signature.sender.address)
+        $address.subEncode(buffer, signature.sender.address)
         if (signature.additional) {
           const toSignBuffer = new $.EncodeBuffer(buffer.stealAlloc(toSignSize))
-          $call._encode(toSignBuffer, call)
+          $call.subEncode(toSignBuffer, call)
           const callEnd = toSignBuffer.finishedSize + toSignBuffer.index
-          $extra._encode(toSignBuffer, signature.extra)
+          $extra.subEncode(toSignBuffer, signature.extra)
           const extraEnd = toSignBuffer.finishedSize + toSignBuffer.index
-          $additional._encode(toSignBuffer, signature.additional)
+          $additional.subEncode(toSignBuffer, signature.additional)
           const toSignEncoded = toSignBuffer.finish()
           const callEncoded = toSignEncoded.subarray(0, callEnd)
           const extraEncoded = toSignEncoded.subarray(callEnd, extraEnd)
@@ -62,49 +62,49 @@ export function $extrinsic<M extends FrameMetadata>(metadata: M): $.Codec<Extrin
             : toSignEncoded
           const sig = signature.sender.sign!(toSign, toSignEncoded)
           if (sig instanceof Promise) {
-            $sigPromise._encode(buffer, sig)
+            $sigPromise.subEncode(buffer, sig)
           } else {
-            $sig._encode(buffer, sig)
+            $sig.subEncode(buffer, sig)
           }
           buffer.insertArray(extraEncoded)
           buffer.insertArray(callEncoded)
         } else {
-          $sig._encode(buffer, signature.sig!)
-          $extra._encode(buffer, signature.extra)
-          $call._encode(buffer, call)
+          $sig.subEncode(buffer, signature.sig!)
+          $extra.subEncode(buffer, signature.extra)
+          $call.subEncode(buffer, call)
         }
       } else {
-        $call._encode(buffer, call)
+        $call.subEncode(buffer, call)
       }
     },
-    _decode(buffer) {
+    subDecode(buffer) {
       const firstByte = buffer.array[buffer.index++]!
       const hasSignature = firstByte & (1 << 7)
       const protocolVersion = firstByte & ~(1 << 7)
       let signature: Extrinsic<M>["signature"]
       if (hasSignature) {
-        const address = $address._decode(buffer)
-        const sig = $sig._decode(buffer)
-        const extra = $extra._decode(buffer)
+        const address = $address.subDecode(buffer)
+        const sig = $sig.subDecode(buffer)
+        const extra = $extra.subDecode(buffer)
         signature = { sender: { address }, sig, extra }
       }
-      const call = $call._decode(buffer)
+      const call = $call.subDecode(buffer)
       return { protocolVersion, signature, call }
     },
-    _assert(assert) {
+    subAssert(assert) {
       assert.typeof(this, "object")
       assert.key(this, "protocolVersion").equals($.u8, 4)
       const value_ = assert.value as any
-      $call._assert(assert.key(this, "call"))
+      $call.subAssert(assert.key(this, "call"))
       if (value_.signature) {
         const signatureAssertState = assert.key(this, "signature")
-        $address._assert(signatureAssertState.key(this, "sender").key(this, "address"))
-        $extra._assert(signatureAssertState.key(this, "extra"))
+        $address.subAssert(signatureAssertState.key(this, "sender").key(this, "address"))
+        $extra.subAssert(signatureAssertState.key(this, "extra"))
         if ("additional" in value_.signature) {
-          $additional._assert(signatureAssertState.key(this, "additional"))
+          $additional.subAssert(signatureAssertState.key(this, "additional"))
           signatureAssertState.key(this, "sender").key(this, "sign").typeof(this, "function")
         } else {
-          $sig._assert(signatureAssertState.key(this, "sig"))
+          $sig.subAssert(signatureAssertState.key(this, "sig"))
         }
       }
     },
