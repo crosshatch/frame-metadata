@@ -1,17 +1,17 @@
-import * as $ from "../../deps/scale.ts"
+import * as $ from "../../deps/subshape.ts"
 import { Ty } from "../raw/Ty.ts"
 import { ChainError } from "./ChainError.ts"
 import { $era } from "./Era.ts"
 
-const isResult = new $.CodecVisitor<boolean>()
+const isResult = new $.ShapeVisitor<boolean>()
   .add($.result<any, any, any, any>, () => true)
   .fallback(() => false)
 
-const isOption = new $.CodecVisitor<boolean>()
+const isOption = new $.ShapeVisitor<boolean>()
   .add($.option<any, any>, () => true)
   .fallback(() => false)
 
-export const overrides: Record<string, (ty: Ty, visit: (i: number) => $.AnyCodec) => $.AnyCodec> = {
+export const overrides: Record<string, (ty: Ty, visit: (i: number) => $.AnyShape) => $.AnyShape> = {
   Option: (ty, visit) => {
     let $some = visit(ty.params[0]!.ty!)
     if (isOption.visit($some)) {

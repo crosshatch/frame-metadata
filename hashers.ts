@@ -1,5 +1,5 @@
-import * as $ from "./deps/scale.ts"
-import { EncodeBuffer } from "./deps/scale.ts"
+import * as $ from "./deps/subshape.ts"
+import { EncodeBuffer } from "./deps/subshape.ts"
 import { Blake2b, Xxhash } from "./deps/wat_the_crypto.ts"
 
 export abstract class Hasher {
@@ -7,7 +7,7 @@ export abstract class Hasher {
   abstract digestLength: number
   abstract concat: boolean
 
-  $hash<I, O>($inner: $.Codec<I, O>): $.Codec<I, O> {
+  $hash<I, O>($inner: $.Shape<I, O>): $.Shape<I, O> {
     return $hash(this, $inner)
   }
 
@@ -24,16 +24,16 @@ export abstract class Hasher {
   }
 }
 
-export function $hash<I, O>(hasher: Hasher, $inner: $.Codec<I, O>): $.Codec<I, O> {
-  return $.createCodec({
-    _metadata: $.metadata("$hash", $hash, hasher, $inner),
-    _staticSize: hasher.digestLength + $inner._staticSize,
-    _encode(buffer, value) {
+export function $hash<I, O>(hasher: Hasher, $inner: $.Shape<I, O>): $.Shape<I, O> {
+  return $.createShape({
+    metadata: $.metadata("$hash", $hash, hasher, $inner),
+    staticSize: hasher.digestLength + $inner.staticSize,
+    subEncode(buffer, value) {
       const hashArray = buffer.array.subarray(buffer.index, buffer.index += hasher.digestLength)
       const cursor = hasher.concat
-        ? buffer.createCursor($inner._staticSize)
-        : new EncodeBuffer(buffer.stealAlloc($inner._staticSize))
-      $inner._encode(cursor, value)
+        ? buffer.createCursor($inner.staticSize)
+        : new EncodeBuffer(buffer.stealAlloc($inner.staticSize))
+      $inner.subEncode(cursor, value)
       buffer.waitForBuffer(cursor, () => {
         if (hasher.concat) (cursor as ReturnType<EncodeBuffer["createCursor"]>).close()
         else cursor._commitWritten()
@@ -43,13 +43,13 @@ export function $hash<I, O>(hasher: Hasher, $inner: $.Codec<I, O>): $.Codec<I, O
         hashing.dispose?.()
       })
     },
-    _decode(buffer) {
+    subDecode(buffer) {
       if (!hasher.concat) throw new DecodeNonTransparentKeyError()
       buffer.index += hasher.digestLength
-      return $inner._decode(buffer)
+      return $inner.subDecode(buffer)
     },
-    _assert(assert) {
-      $inner._assert(assert)
+    subAssert(assert) {
+      $inner.subAssert(assert)
     },
   })
 }
@@ -77,7 +77,7 @@ export class IdentityHasher extends Hasher {
     }
   }
 
-  override $hash<I, O>($inner: $.Codec<I, O>): $.Codec<I, O> {
+  override $hash<I, O>($inner: $.Shape<I, O>): $.Shape<I, O> {
     return $inner
   }
 

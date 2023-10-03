@@ -1,17 +1,16 @@
-import * as $ from "../../deps/scale.ts"
-import { $ty, $tyId } from "../../scale_info/raw/Ty.ts"
-import { $null, transformTys } from "../../scale_info/transformTys.ts"
+import * as $ from "../../deps/subshape.ts"
 import {
   blake2_128,
   blake2_128Concat,
   blake2_256,
   identity,
-  normalizeDocs,
-  normalizeIdent,
   twox128,
   twox256,
   twox64Concat,
-} from "../../util/mod.ts"
+} from "../../hashers.ts"
+import { $ty, $tyId } from "../../scale_info/raw/Ty.ts"
+import { $null, transformTys } from "../../scale_info/transformTys.ts"
+import { normalizeDocs, normalizeIdent } from "../../util/mod.ts"
 import { FrameMetadata } from "../FrameMetadata.ts"
 import {
   $emptyKey,
@@ -19,7 +18,7 @@ import {
   $partialMultiKey,
   $partialSingleKey,
   $storageKey,
-} from "../key_codecs.ts"
+} from "../key_shapes.ts"
 
 const hashers = {
   blake2_128,
@@ -126,11 +125,11 @@ export function transformMetadata(metadata: $.Output<typeof $metadata>): FrameMe
               key = hashers[storage.hashers[0]!].$hash(ids[storage.key]!)
               partialKey = $partialSingleKey(key)
             } else {
-              const codecs = extractTupleMembersVisitor.visit(ids[storage.key]!).map((codec, i) =>
-                hashers[storage.hashers[i]!].$hash(codec)
+              const shapes = extractTupleMembersVisitor.visit(ids[storage.key]!).map((shape, i) =>
+                hashers[storage.hashers[i]!].$hash(shape)
               )
-              key = $.tuple(...codecs)
-              partialKey = $partialMultiKey(...codecs)
+              key = $.tuple(...shapes)
+              partialKey = $partialMultiKey(...shapes)
             }
             return [storage.name, {
               singular: storage.type === "Plain",
@@ -146,7 +145,7 @@ export function transformMetadata(metadata: $.Output<typeof $metadata>): FrameMe
         constants: Object.fromEntries(
           pallet.constants.map((constant): [string, FrameMetadata.Constant] => [constant.name, {
             name: constant.name,
-            codec: ids[constant.ty]!,
+            shape: ids[constant.ty]!,
             value: constant.value,
             docs: normalizeDocs(constant.docs),
           }]),
@@ -181,5 +180,5 @@ export function transformMetadata(metadata: $.Output<typeof $metadata>): FrameMe
   }
 }
 
-const extractTupleMembersVisitor = new $.CodecVisitor<$.Codec<any>[]>()
-  .add($.tuple<$.Codec<any>[]>, (_codec, ...members) => members)
+const extractTupleMembersVisitor = new $.ShapeVisitor<$.Shape<any>[]>()
+  .add($.tuple<$.Shape<any>[]>, (_codec, ...members) => members)

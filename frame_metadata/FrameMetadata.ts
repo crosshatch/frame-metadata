@@ -1,8 +1,8 @@
-import * as $ from "../deps/scale.ts"
+import * as $ from "../deps/subshape.ts"
 
 export interface FrameMetadata {
-  types: Record<string, $.AnyCodec>
-  paths: Record<string, $.AnyCodec>
+  types: Record<string, $.AnyShape>
+  paths: Record<string, $.AnyShape>
   pallets: Record<string, FrameMetadata.Pallet>
   extrinsic: FrameMetadata.Extrinsic
 }
@@ -14,9 +14,9 @@ export namespace FrameMetadata {
     storage: Record<string, StorageEntries>
     constants: Record<string, Constant>
     types: {
-      call?: $.AnyCodec
-      event?: $.AnyCodec
-      error?: $.AnyCodec
+      call?: $.AnyShape
+      event?: $.AnyShape
+      error?: $.AnyShape
     }
     docs: string
   }
@@ -24,25 +24,25 @@ export namespace FrameMetadata {
   export interface StorageEntries {
     singular: boolean
     name: string
-    key: $.AnyCodec
-    partialKey: $.AnyCodec
-    value: $.AnyCodec
+    key: $.AnyShape
+    partialKey: $.AnyShape
+    value: $.AnyShape
     default?: Uint8Array
     docs: string
   }
 
   export interface Constant {
     name: string
-    codec: $.AnyCodec
+    shape: $.AnyShape
     value: Uint8Array
     docs: string
   }
 
   export interface Extrinsic {
-    call: $.AnyCodec
-    signature: $.AnyCodec
-    address: $.AnyCodec
-    extra: $.AnyCodec
-    additional: $.AnyCodec
+    call: $.AnyShape
+    signature: $.AnyShape
+    address: $.AnyShape
+    extra: $.AnyShape
+    additional: $.AnyShape
   }
 }

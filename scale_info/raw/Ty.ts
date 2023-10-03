@@ -1,4 +1,4 @@
-import * as $ from "../../deps/scale.ts"
+import * as $ from "../../deps/subshape.ts"
 
 export const $tyId = $.compact($.u32)
 

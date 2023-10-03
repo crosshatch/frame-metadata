@@ -1,24 +1,24 @@
-import * as $ from "../deps/scale.ts"
-import { AnyCodec, Codec } from "../deps/scale.ts"
+import * as $ from "../deps/subshape.ts"
+import { AnyShape, Shape } from "../deps/subshape.ts"
 import { getOrInit, normalizeDocs, normalizeIdent, normalizeTypeName } from "../util/mod.ts"
 import { overrides } from "./overrides/mod.ts"
 import { $field, Ty } from "./raw/Ty.ts"
 
 /**
- * All derived codecs for ZSTs will use this exact codec,
- * so `derivedCodec === $null` is true iff the type is a ZST.
+ * All derived shapes for ZSTs will use this exact shape,
+ * so `derivedShape === $null` is true iff the type is a ZST.
  */
 export const $null = $.withMetadata($.metadata("$null"), $.constant(null))
 
 export interface ScaleInfo {
-  ids: AnyCodec[]
-  types: Record<string, AnyCodec>
-  paths: Record<string, AnyCodec>
+  ids: AnyShape[]
+  types: Record<string, AnyShape>
+  paths: Record<string, AnyShape>
 }
 export function transformTys(tys: Ty[]): ScaleInfo {
-  const memo = new Map<number, AnyCodec>()
-  const types: Record<string, AnyCodec> = {}
-  const paths: Record<string, AnyCodec> = {}
+  const memo = new Map<number, AnyShape>()
+  const types: Record<string, AnyShape> = {}
+  const paths: Record<string, AnyShape> = {}
   const seenPaths = new Map<string, Ty | null>()
   const includePaths = new Set<string>()
   const names = new Map<string, string>()
@@ -61,7 +61,7 @@ export function transformTys(tys: Ty[]): ScaleInfo {
 
   return { ids: tys.map((_, i) => visit(i)), types, paths }
 
-  function visit(i: number): $.AnyCodec {
+  function visit(i: number): $.AnyShape {
     return getOrInit(memo, i, () => {
       memo.set(i, $.deferred(() => memo.get(i)!))
       const ty = tys[i]!
@@ -69,13 +69,13 @@ export function transformTys(tys: Ty[]): ScaleInfo {
       const usePath = includePaths.has(path)
       const name = names.get(path)!
       if (usePath && types[name]) return types[name]!
-      const codec = withDocs(ty.docs, _visit(ty))
-      if (usePath) return types[name] ??= paths[path] = codec
-      return codec
+      const shape = withDocs(ty.docs, _visit(ty))
+      if (usePath) return types[name] ??= paths[path] = shape
+      return shape
     })
   }
 
-  function _visit(ty: Ty): $.AnyCodec {
+  function _visit(ty: Ty): $.AnyShape {
     const overrideFn = overrides[ty.path.join("::")]
     if (overrideFn) return overrideFn(ty, visit)
     if (ty.type === "Struct") {
@@ -167,10 +167,10 @@ export function transformTys(tys: Ty[]): ScaleInfo {
   }
 }
 
-function withDocs<I, O>(_docs: string[], codec: Codec<I, O>): Codec<I, O> {
+function withDocs<I, O>(_docs: string[], shape: Shape<I, O>): Shape<I, O> {
   const docs = normalizeDocs(_docs)
-  if (docs) return $.documented(docs, codec)
-  return codec
+  if (docs) return $.documented(docs, shape)
+  return shape
 }
 
 function eqTy(tys: Ty[], a: number, b: number) {
@@ -249,10 +249,10 @@ function eqTy(tys: Ty[], a: number, b: number) {
   }
 }
 
-const optionInnerVisitor = new $.CodecVisitor<$.AnyCodec | null>()
-  .add($.option, (_codec, $some) => $some)
+const optionInnerVisitor = new $.ShapeVisitor<$.AnyShape | null>()
+  .add($.option, (_shape, $some) => $some)
   .fallback(() => null)
-function maybeOptionalField(key: PropertyKey, $value: $.AnyCodec): $.AnyCodec {
+function maybeOptionalField(key: PropertyKey, $value: $.AnyShape): $.AnyShape {
   const $inner = optionInnerVisitor.visit($value)
   return $inner ? $.optionalField(key, $inner) : $.field(key, $value)
 }
